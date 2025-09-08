@@ -1,0 +1,22 @@
+function m_in = find_m_in(varargin)
+    temp = varargin{1};
+    C =  varargin{2};
+    l_cut = varargin{3};
+    P = varargin{4}; 
+    m_upper = C/20*exp(5*800/temp);
+    if nargin == 5
+        aa = varargin{5};
+        m_in = fzero(@(m_in) Eqn_energy_loss(m_in),[1e-5,m_upper]);
+    else
+       m_in = fzero(@(m_in) Eqn_energy(m_in),[1e-5,m_upper]);
+    end
+
+
+    function Energy_balance = Eqn_energy(m_in)
+        [~,~,Energy_balance] = chemical(temp,C,m_in,l_cut*1e-9,P);
+    end
+    function Energy_balance = Eqn_energy_loss(m_in)
+        [~,~,Energy_balance] = chemical(temp,C,m_in,l_cut*1e-9,P,aa);
+    end
+end
+

@@ -1,0 +1,14 @@
+clc;
+clear;
+
+%Demo
+%Efficiency and conversion rate under different temperatures, concentration ratios, and Fe-h Fheat conditions
+temp = 800;
+C = 200;
+Feh = 1;    %Fe-h
+Fheat = 1;
+L_cut = find_lcut(temp,C,Feh,Fheat);
+m_in = find_m_in(temp,C,L_cut,Feh,Fheat);
+[xl,zz,Energy_balance] = chemical(temp,C,m_in,L_cut*1e-9,Feh,Fheat);
+
+

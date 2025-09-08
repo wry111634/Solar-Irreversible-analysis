@@ -1,0 +1,105 @@
+function [output,zz,Energy_balance] = chemical(varargin)  
+    temp = varargin{1};
+    C =  varargin{2};
+    m_in =  varargin{3};
+    l_cut = varargin{4};
+    P = varargin{5};   
+    if nargin == 6
+        heat_loss = varargin{6};
+    else
+        heat_loss = 1;
+    end
+    a = 1;
+    Area = 1;                          
+    q = 1.6e-19;                           
+    h = 6.626e-34;                    
+    c = 3e8;                               
+    k = 1.38e-23;                      
+    Na = 6.02214076e23;          
+    Rm = 0.008314;                 
+    T0 = 298.15;                        
+    distance = 149597870;       
+    r_sun = 696300;
+    r_earth = 6371.393;
+    f = 2.16e-5;                                             
+    f = (r_sun/distance)^2;
+    theta_s = atan(r_sun/distance);         
+    theta_x = asin(C^0.5*sin(theta_s));    
+    Cmax = 1/f;                                         
+    T_sun = 6000;                                       
+    A_heat = 1-(298.15/temp);
+    Eg = 1e-9*1240/l_cut;                         
+    if P == 0
+        delta_enthalpy = m_in*(-enthalpy(temp,1,1,0,0,0,0,0)+enthalpy(temp,0,0,2,2,0,0,0));
+        Q_total = Area*1e-3*integral(@(l) pi*f*C.*plk(T_sun,l),50e-9,inf);
+        Q = Area*1e-3*integral(@(l) pi*f*C.*plk(T_sun,l)-a.*plk(temp,l),50e-9,inf);
+        Q = Q*heat_loss;
+        zz = fzero(@(xx) delta_G(temp,xx),[1e-8 100-1e-8]);
+        output = 100*(m_in*zz/100*(delta_G2(298.15,zz)))/Q_total; 
+        Energy_balance = Q-delta_enthalpy*zz/100;
+    else
+        uc = find_uc();
+        [output,zz,Energy_balance] = xl(uc);
+    end    
+    function [output,zz,Energy_balance] = xl(uc)
+            jiare = m_in*(-enthalpy(298.15,1,1,0,0,0,0,0)+enthalpy(temp,1,1,0,0,0,0,0));
+            delta_enthalpy = m_in*(-enthalpy(temp,1,1,0,0,0,0,0)+enthalpy(temp,0,0,2,2,0,0,0));
+            delta_a_G_0 =1.773;       
+            Q_total = Area*1e-3*integral(@(l) pi*f*C.*plk(T_sun,l),50e-9,inf);
+            Q_flux = Area*1e-3*integral(@(l) pi*f*C.*plk(T_sun,l)-a.*plk(temp,l),l_cut,inf);
+            photon = Area*integral(@(l) f*C*2*pi*c./l.^4.*(1./(exp((h*c./l)./(k*T_sun))-1))-a*2*pi*c./l.^4.*(1./(exp((h*c./l-uc*q)./(k*temp))-1)),50e-9,l_cut);
+            Q_p = (1-P)*1e-3*photon*uc*q+1e-3*Area*integral(@(l) (h*c./l-uc*q).*(f*C*2*pi*c./l.^4.*(1./(exp((h*c./l)./(k*T_sun))-1))-a*2*pi*c./l.^4.*(1./(exp((h*c./l-uc*q)./(k*temp))-1))),50e-9,l_cut);
+            Q_flux = (Q_flux+Q_p);
+            Q_flux = heat_loss*Q_flux;
+            exergy_sun = 1e-3*P.*uc*q*photon;
+            Q = Q_flux;
+            if delta_G(temp,100-1e-10)-uc<0
+                c_max =100; 
+            elseif delta_G(temp,1e-10)-uc>0
+                c_max = 0;
+            else
+                c_max = fzero(@(xx) delta_G(temp,xx)-uc,[1e-10,100-1e-10]);
+            end
+            if ex_need(m_in,temp,100-1e-8,l_cut)-Q*A_heat-exergy_sun<0
+                conversion_heat = 100;
+            elseif ex_need(m_in,temp,1e-8,l_cut)-Q*A_heat-exergy_sun>0
+                conversion_heat = 0;
+            else
+                conversion_heat = fzero(@(xx) ex_need(m_in,temp,xx,l_cut)-(Q*A_heat+exergy_sun),[1e-8 100-1e-8]);
+            end
+            zz = conversion_heat*(conversion_heat<=c_max)+c_max*(conversion_heat>c_max);
+            xl = (m_in*zz/100*(delta_G2(298.15,zz)))/Q_total;  
+            output =xl*100;
+            Energy_balance = Q+exergy_sun-delta_enthalpy*zz/100;
+     end
+    function output = delta_G(temp,n)
+        n = n/100;
+        H = -enthalpy(temp,1,1,0,0,0,0,0)+enthalpy(temp,0,0,2,2,0,0,0);
+        prop1 = phy(temp,'ch4');
+        prop2 = phy(temp,'co2');
+        prop3 = phy(temp,'co');
+        prop4 = phy(temp,'h2');
+        S = (2*prop3(2)+2*prop4(2)-prop1(2)-prop2(2))/1000;
+        reaction_quotient = 4.*n.^4./((n.^2-1).^2);
+        output = (1e3*((H-temp*S)+Rm.*temp*log(reaction_quotient))/Na/q)./6;
+    end
+
+
+    function output = delta_G2(temp,n)
+        n = n/100;
+        H = -enthalpy(temp,1,1,0,0,0,0,0)+enthalpy(temp,0,0,2,2,0,0,0);
+        prop1 = phy(temp,'ch4');
+        prop2 = phy(temp,'co2');
+        prop3 = phy(temp,'co');
+        prop4 = phy(temp,'h2');
+        S = (2*prop3(2)+2*prop4(2)-prop1(2)-prop2(2))/1000;
+        reaction_quotient = 4.*n.^4./((n.^2-1).^2);
+        output = ((H-temp*S)+Rm.*temp*log(reaction_quotient));
+    end
+
+    function out = find_uc()
+        out =  fminbnd(@(uc) -xl(uc), 1e-5,1e-9*1240/l_cut);
+    end
+    end
+
+

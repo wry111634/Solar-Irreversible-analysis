@@ -1,0 +1,10 @@
+    function output = enthalpy(T,c1,c2,c3,c4,c5,c6,c7)
+    H1 = phy(T,'ch4');
+    H2 = phy(T,'co2');
+    H3 = phy(T,'co');
+    H4 = phy(T,'h2');
+    H5 = phy(T,'h2o');
+    H6 = phy(T,'o2');
+    H7 = phy(T,'n2');
+    output = c1*(H1(1)-74.847)+c2*(H2(1)-393.52)+c3*(H3(1)-110.53)+c4*(H4(1))+c5*(H5(1)-241.82)+c6*(H6(1))+c7*(H7(1));
+end

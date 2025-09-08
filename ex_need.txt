@@ -1,0 +1,26 @@
+function output = ex_need(m_in,T,conversion,l_cut)
+        T_sun = 6000;                              
+        f = 2.16e-5;                                     
+        Area = 1;
+        q = 1.6e-19;
+        h = 6.626e-34;                  
+        c = 3e8;                           
+        k = 1.38e-23;                      
+        Na = 6.02214076e23;         
+        Rm = 0.008314;                
+        p = 1.01325;
+        n = conversion/100;
+        reaction_quotient = 4.*n.^4./((n.^2-1).^2);
+        prop1 = phy(T,'ch4');
+        prop2 = phy(T,'co2');
+        prop3 = phy(T,'co');
+        prop4 = phy(T,'h2');
+        Eg = 1e-9*1240/l_cut;                     
+        han_standard = m_in*(-enthalpy(T,1,1,0,0,0,0,0)+enthalpy(T,0,0,2,2,0,0,0));
+        shang_standard = m_in*(2*prop3(2)+2*prop4(2)-prop1(2)-prop2(2))/1000;
+        dH = han_standard;
+        dS = shang_standard - m_in*Rm*log(reaction_quotient);
+        dG = han_standard-T*shang_standard;
+        dE = dG+T*shang_standard-dS*298.15;
+        output = dE*n;
+    end

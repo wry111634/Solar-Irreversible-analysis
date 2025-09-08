@@ -1,0 +1,12 @@
+function output = find_lcut(varargin)
+    temp = varargin{1};
+    C =  varargin{2};
+    P = varargin{3}; 
+    if nargin == 4
+        aa = varargin{4};
+        l_cut = fminbnd(@(l) -chemical(temp,C,find_m_in(temp,C,l,P,aa),l*1e-9,P),100,2000);
+    else
+        l_cut = fminbnd(@(l) -chemical(temp,C,find_m_in(temp,C,l,P),l*1e-9,P),100,2000);
+    end
+    output = l_cut;
+end

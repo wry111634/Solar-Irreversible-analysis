@@ -1,0 +1,10 @@
+
+    function output = plk(temp,l)
+    q = 1.6e-19;                           
+    h = 6.626e-34;                     
+    c = 3e8;                               
+    k = 1.38e-23;                       
+    Na = 6.02214076e23;          
+    Rm = 0.008314;              
+    output = 2*h*c^2./l.^5.*(1./(exp(h*c./k./temp./l)-1));
+    end
